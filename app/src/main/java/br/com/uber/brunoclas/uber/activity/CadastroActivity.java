@@ -92,7 +92,7 @@ public class CadastroActivity extends AppCompatActivity {
                         UsuarioFirebase.atualizarNomeUsuario(usuario.getNome());
 
                         if(verificaTipoUsuario() == "P"){
-                            startActivity( new Intent(CadastroActivity.this, MapsActivity.class));
+                            startActivity( new Intent(CadastroActivity.this, PassageiroActivity.class));
                             finish();
                             alerta("Sucesso ao cadastrar passageiro!", 0);
                         }else{
