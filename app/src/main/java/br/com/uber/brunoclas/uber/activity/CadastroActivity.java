@@ -122,12 +122,10 @@ public class CadastroActivity extends AppCompatActivity {
                 }
             }
         });
-
     }
 
     public String verificaTipoUsuario(){
         return switchTipoUsuario.isChecked() ? "M" : "P";
-
     }
 
     private void alerta(String msg, int duracao){

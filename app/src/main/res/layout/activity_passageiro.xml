@@ -20,10 +20,10 @@
 
     </android.support.design.widget.AppBarLayout>
 
-    <include
-        layout="@layout/content_passageiro" />
+    <include layout="@layout/content_passageiro" />
 
     <LinearLayout
+        android:id="@+id/linearLayoutDestino"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="16dp"
@@ -54,8 +54,8 @@
             android:layout_height="40dp"
             android:background="@android:color/white"
             android:drawableLeft="@drawable/circulo_verde"
-            android:drawableTint="@android:color/darker_gray"
             android:drawablePadding="6dp"
+            android:drawableTint="@android:color/darker_gray"
             android:ems="10"
             android:hint="Meu local"
             android:inputType="textPersonName"
@@ -66,10 +66,11 @@
     </LinearLayout>
 
     <Button
-        android:id="@+id/button5"
+        android:id="@+id/buttonChamarUber"
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:layout_gravity="bottom"
+        android:onClick="chamarUber"
         android:text="Chamar Uber"
         android:theme="@style/botaoPadrao" />
 
