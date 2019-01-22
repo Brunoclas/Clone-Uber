@@ -3,9 +3,11 @@ package br.com.uber.brunoclas.uber.model;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.Exclude;
 
+import java.io.Serializable;
+
 import br.com.uber.brunoclas.uber.config.ConfiguracaoFirebase;
 
-public class Usuario {
+public class Usuario implements Serializable {
     private String id;
     private String nome;
     private String email;
