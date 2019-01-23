@@ -2,7 +2,9 @@ package br.com.uber.brunoclas.uber.activity;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -15,12 +17,19 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
+import com.firebase.geofire.GeoFire;
+import com.firebase.geofire.GeoLocation;
+import com.firebase.geofire.GeoQuery;
+import com.firebase.geofire.GeoQueryEventListener;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -32,6 +41,7 @@ import com.google.firebase.database.ValueEventListener;
 
 import br.com.uber.brunoclas.uber.R;
 import br.com.uber.brunoclas.uber.config.ConfiguracaoFirebase;
+import br.com.uber.brunoclas.uber.helper.UsuarioFirebase;
 import br.com.uber.brunoclas.uber.model.Requisicao;
 import br.com.uber.brunoclas.uber.model.Usuario;
 
@@ -52,6 +62,8 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
     private DatabaseReference firebaseRef;
     private Marker marcadorMotorista;
     private Marker marcadorPassageiro;
+    private String statusRequisicao;
+    private boolean requisicaoAtiva;
 
 
     @Override
@@ -67,7 +79,12 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
 
             Bundle extras = getIntent().getExtras();
             motorista = (Usuario) extras.getSerializable("motorista");
+            localMotorista = new LatLng(
+                    Double.parseDouble(motorista.getLatitude()),
+                    Double.parseDouble(motorista.getLongitude())
+            );
             idRequisicao = extras.getString("idRequisicao");
+            requisicaoAtiva = extras.getBoolean("requisicaoAtiva");
             verificaStatusRequisicao();
 
         }
@@ -83,20 +100,17 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 //Recupera requisicao
                 requisicao = dataSnapshot.getValue(Requisicao.class);
-                passageiro = requisicao.getPassageiro();
-                localPassageiro = new LatLng(
-                        Double.parseDouble(passageiro.getLatitude()),
-                        Double.parseDouble(passageiro.getLongitude())
-                );
 
-                switch (requisicao.getStatus()) {
-                    case Requisicao.STATUS_AGUARDANDO:
-                        requisicaoAguardando();
+                if (requisicoes != null) {
 
-                        break;
-                    case Requisicao.STATUS_A_CAMINHO:
-                        requisicaoACaminho();
-                        break;
+                    passageiro = requisicao.getPassageiro();
+                    localPassageiro = new LatLng(
+                            Double.parseDouble(passageiro.getLatitude()),
+                            Double.parseDouble(passageiro.getLongitude())
+                    );
+
+                    statusRequisicao = requisicao.getStatus();
+                    alteraInterfaceStatusRequisicao(statusRequisicao);
                 }
 
             }
@@ -107,6 +121,18 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
             }
         });
 
+    }
+
+    private void alteraInterfaceStatusRequisicao(String status) {
+        switch (status) {
+            case Requisicao.STATUS_AGUARDANDO:
+                requisicaoAguardando();
+
+                break;
+            case Requisicao.STATUS_A_CAMINHO:
+                requisicaoACaminho();
+                break;
+        }
     }
 
     private void requisicaoACaminho() {
@@ -120,7 +146,66 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
         adicionaMarcadorPassageiro(localPassageiro, passageiro.getNome());
 
         //Centralizar dois marcadores
-        centralizarDoisMarcadores(marcadorMotorista, marcadorMotorista);
+        centralizarDoisMarcadores(marcadorMotorista, marcadorPassageiro);
+
+        //Inicia monitoramento do motorista
+        iniciarMonitoramentoCorrida(passageiro, motorista);
+
+    }
+
+    private void iniciarMonitoramentoCorrida(final Usuario passageiro, final Usuario motorista) {
+
+        //Inicializar Geofire
+        DatabaseReference localUsuario = ConfiguracaoFirebase.getFirebaseDatabase()
+                .child("local_usuario");
+        GeoFire geoFire = new GeoFire(localUsuario);
+
+        //Adicionar circulo passageiro
+        final Circle circulo = mMap.addCircle(
+                new CircleOptions()
+                        .center(localPassageiro)
+                        .radius(50) //em metros
+                        .fillColor(Color.argb(90, 255, 153, 0))
+                        .strokeColor(Color.argb(190, 255, 153, 0))
+        );
+
+        final GeoQuery geoQuery = geoFire.queryAtLocation(
+                new GeoLocation(localPassageiro.latitude, localPassageiro.longitude),
+                0.05 // em km
+        );
+        geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
+            @Override
+            public void onKeyEntered(String key, GeoLocation location) {
+                if (key.equals(motorista.getId())) {
+                    requisicao.setStatus(Requisicao.STATUS_VIAGEM);
+                    requisicao.atualizarStatus();
+
+                    //Remover listener
+                    geoQuery.removeAllListeners();
+                    circulo.remove();
+                }
+            }
+
+            @Override
+            public void onKeyExited(String key) {
+
+            }
+
+            @Override
+            public void onKeyMoved(String key, GeoLocation location) {
+
+            }
+
+            @Override
+            public void onGeoQueryReady() {
+
+            }
+
+            @Override
+            public void onGeoQueryError(DatabaseError error) {
+
+            }
+        });
 
     }
 
@@ -134,7 +219,7 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
 
         int largura = getResources().getDisplayMetrics().widthPixels;
         int altura = getResources().getDisplayMetrics().heightPixels;
-        int espacoInterno = (int) (largura * 0.20);
+        int espacoInterno = (int) (largura * 0.30);
 
         mMap.moveCamera(
                 CameraUpdateFactory.newLatLngBounds(bounds, largura, altura, espacoInterno)
@@ -143,10 +228,10 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
 
     private void adicionaMarcadorMotorista(LatLng localizacao, String titulo) {
 
-        if(marcadorMotorista != null)
+        if (marcadorMotorista != null)
             marcadorMotorista.remove();
 
-        marcadorMotorista =  mMap.addMarker(
+        marcadorMotorista = mMap.addMarker(
                 new MarkerOptions()
                         .position(localizacao)
                         .title(titulo)
@@ -157,10 +242,10 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
 
     private void adicionaMarcadorPassageiro(LatLng localizacao, String titulo) {
 
-        if(marcadorPassageiro != null)
+        if (marcadorPassageiro != null)
             marcadorPassageiro.remove();
 
-        marcadorPassageiro =  mMap.addMarker(
+        marcadorPassageiro = mMap.addMarker(
                 new MarkerOptions()
                         .position(localizacao)
                         .title(titulo)
@@ -172,6 +257,9 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
     private void requisicaoAguardando() {
 
         buttonAceitarCorrida.setText("Aceitar corrida");
+
+        //Exibe marcador do motorista
+        adicionaMarcadorMotorista(localMotorista, motorista.getNome());
 
     }
 
@@ -202,6 +290,10 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
         //Recuperar localizacao do usuario
         recuperarLocalizacaoUsuario();
 
+        mMap.moveCamera(
+                CameraUpdateFactory.newLatLngZoom(localMotorista, 20)
+        );
+
     }
 
     private void recuperarLocalizacaoUsuario() {
@@ -214,9 +306,15 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
                 //Recuperar a latitude e longitude
                 double latitude = location.getLatitude();
                 double longitude = location.getLongitude();
+
+                //Atualizar Geofire
+                UsuarioFirebase.atualizarDadosLocalizacao(latitude, longitude);
+
                 localMotorista = new LatLng(latitude, longitude);
 
-                mMap.clear();
+                alteraInterfaceStatusRequisicao(statusRequisicao);
+
+              /*  mMap.clear();
                 mMap.addMarker(
                         new MarkerOptions()
                                 .position(localMotorista)
@@ -225,7 +323,8 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
                 );
                 mMap.moveCamera(
                         CameraUpdateFactory.newLatLngZoom(localMotorista, 20)
-                );
+                ); */
+
             }
 
             @Override
@@ -247,9 +346,9 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
         //Solicitar atualizacoes de loclizacao
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             locationManager.requestLocationUpdates(
-                    LocationManager.NETWORK_PROVIDER,
-                    0,
-                    0,
+                    LocationManager.GPS_PROVIDER,
+                    10000,
+                    10,
                     locationListener
             );
         }
@@ -268,5 +367,23 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
         requisicao.atualzar();
 
     }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        if (requisicaoAtiva) {
+            alerta("Necessario encerrar a requisicao atual!", 1);
+        } else {
+
+            Intent i = new Intent(CorridaActivity.this, RequisicoesActivity.class);
+            startActivity(i);
+
+        }
+        return false;
+    }
+
+    private void alerta(String msg, int duracao) {
+        Toast.makeText(this, msg, duracao).show();
+    }
+
 
 }

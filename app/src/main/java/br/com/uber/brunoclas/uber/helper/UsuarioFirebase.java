@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import com.firebase.geofire.GeoFire;
+import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
@@ -86,6 +88,31 @@ public class UsuarioFirebase {
                 }
             });
         }
+    }
+
+    public static void atualizarDadosLocalizacao(double lat, double lon){
+
+        //Define nó de local de usuario
+        DatabaseReference localUsuario = ConfiguracaoFirebase.getFirebaseDatabase()
+                .child("local_usuario");
+        GeoFire geoFire = new GeoFire(localUsuario);
+
+        //Recupera dados usuario logado
+        Usuario usuarioLogado = UsuarioFirebase.getDadosUsuarioLogado();
+
+        //Configura localizacao do usuario
+        geoFire.setLocation(
+                usuarioLogado.getId(),
+                new GeoLocation(lat, lon),
+                new GeoFire.CompletionListener() {
+                    @Override
+                    public void onComplete(String key, DatabaseError error) {
+                         if(error != null)
+                             Log.d("Erro", "Erro ao salvar local");
+                    }
+                }
+        );
+
     }
 
     public static String getIdentificadorUuario(){

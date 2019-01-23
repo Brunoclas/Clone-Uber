@@ -56,6 +56,15 @@ import br.com.uber.brunoclas.uber.model.Usuario;
 
 public class PassageiroActivity extends AppCompatActivity implements OnMapReadyCallback {
 
+    /*
+     * Lat/lon destino:-23.556407, -46.662365 (Av. Paulista, 2439)
+     * Lat/lon passageiro: -23.562791, -46.654668
+     * Lat/lon Motorista (a caminho):
+     *   inicial: -23.563196, -46.650607
+     *   intermediaria: -23.564801, -46.652196
+     *   final: -23.562801, -46.654660
+     * */
+
     //Compoentes
     private EditText editDestino;
     private LinearLayout linearLayoutDestino;
@@ -198,7 +207,8 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
             } else {
                 alerta("Informe o endereco de destino", 1);
             }
-        } else {  //Cancelar a requisicao
+        } else {
+            //Cancelar a requisicao
             uberChamado = false;
 
         }
@@ -254,6 +264,9 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
                 double latitude = location.getLatitude();
                 double longitude = location.getLongitude();
                 localPassageiro = new LatLng(latitude, longitude);
+
+                //Atualizar Geofire
+                UsuarioFirebase.atualizarDadosLocalizacao(latitude, longitude);
 
                 mMap.clear();
                 mMap.addMarker(

@@ -45,7 +45,7 @@ public class RequisicoesActivity extends AppCompatActivity {
     private FirebaseAuth autenticacao;
     private DatabaseReference firebaseRef;
 
-    private List<Requisicao> listaRequisicoes = new  ArrayList<>();
+    private List<Requisicao> listaRequisicoes = new ArrayList<>();
     private RequisicoesAdapter adapter;
     private Usuario motorista;
 
@@ -64,6 +64,44 @@ public class RequisicoesActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        verificaStatusRequisicao();
+    }
+
+    private void verificaStatusRequisicao() {
+
+        Usuario usuarioLogado = UsuarioFirebase.getDadosUsuarioLogado();
+        DatabaseReference firebaseRef = ConfiguracaoFirebase.getFirebaseDatabase();
+
+        DatabaseReference requisicoes = firebaseRef.child("requisicoes");
+
+        Query requisicoesPesquisa = requisicoes.orderByChild("motorista/id")
+                .equalTo( usuarioLogado.getId() );
+
+        requisicoesPesquisa.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for (DataSnapshot ds: dataSnapshot.getChildren()){
+                    Requisicao requisicao = ds.getValue( Requisicao.class );
+
+                    if( requisicao.getStatus().equals(Requisicao.STATUS_A_CAMINHO)
+                        || requisicao.getStatus().equals(Requisicao.STATUS_VIAGEM)){
+                        abrirTelaCorrida(requisicao.getId(), motorista, true);
+                    }
+
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
+    }
+
     private void recuperarLocalizacaoUsuario() {
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
@@ -75,7 +113,10 @@ public class RequisicoesActivity extends AppCompatActivity {
                 String latitude = String.valueOf(location.getLatitude());
                 String longitude = String.valueOf(location.getLongitude());
 
-                if(!latitude.isEmpty()  && !longitude.isEmpty()){
+                //Atualizar Geofire
+                UsuarioFirebase.localizarDadosLocalizacao(location.getLatitude(), location.getLongitude());
+
+                if (!latitude.isEmpty() && !longitude.isEmpty()) {
                     motorista.setLatitude(latitude);
                     motorista.setLongitude(longitude);
                     locationManager.removeUpdates(locationListener);
@@ -104,8 +145,8 @@ public class RequisicoesActivity extends AppCompatActivity {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             locationManager.requestLocationUpdates(
                     LocationManager.GPS_PROVIDER,
-                    0,
-                    0,
+                    10000,
+                    10,
                     locationListener
             );
         }
@@ -135,7 +176,15 @@ public class RequisicoesActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    public void inicilizarCOmpoentes(){
+    private void abrirTelaCorrida(String idRequisicao, Usuario motorista, boolean requisicaoAtiva){
+        Intent i = new Intent(RequisicoesActivity.this, CorridaActivity.class);
+        i.putExtra("idRequisicao", idRequisicao);
+        i.putExtra("motorista", motorista);
+        i.putExtra("requisicaoAtiva", requisicaoAtiva);
+        startActivity(i);
+    }
+
+    public void inicilizarCOmpoentes() {
 
         getSupportActionBar().setTitle("Requisicoes");
 
@@ -151,34 +200,31 @@ public class RequisicoesActivity extends AppCompatActivity {
         //Configurar RecyclerView
         adapter = new RequisicoesAdapter(listaRequisicoes, getApplicationContext(), motorista);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
-        recyclerRequisicoes.setLayoutManager( layoutManager );
+        recyclerRequisicoes.setLayoutManager(layoutManager);
         recyclerRequisicoes.setHasFixedSize(true);
         recyclerRequisicoes.setAdapter(adapter);
 
         //Adiciona evento de click no recycler
         recyclerRequisicoes.addOnItemTouchListener(new RecyclerItemClickListener(
-                getApplicationContext(),
-                recyclerRequisicoes,
-                new RecyclerItemClickListener.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(View view, int position) {
-                         Requisicao requisicao = listaRequisicoes.get(position);
-                         Intent i = new Intent (RequisicoesActivity.this, CorridaActivity.class);
-                         i.putExtra("idRequisicao", requisicao.getId());
-                         i.putExtra("motorista", motorista);
-                         startActivity(i);
-                    }
+                        getApplicationContext(),
+                        recyclerRequisicoes,
+                        new RecyclerItemClickListener.OnItemClickListener() {
+                            @Override
+                            public void onItemClick(View view, int position) {
+                                Requisicao requisicao = listaRequisicoes.get(position);
+                                abrirTelaCorrida(requisicao.getId(), motorista, false);
+                            }
 
-                    @Override
-                    public void onLongItemClick(View view, int position) {
+                            @Override
+                            public void onLongItemClick(View view, int position) {
 
-                    }
+                            }
 
-                    @Override
-                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                            @Override
+                            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
-                    }
-                }
+                            }
+                        }
                 )
         );
 
@@ -196,18 +242,18 @@ public class RequisicoesActivity extends AppCompatActivity {
         requisicaoPesquisa.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                 if(dataSnapshot.getChildrenCount() > 0){
-                    textResultado.setVisibility( View.GONE);
-                    recyclerRequisicoes.setVisibility( View.VISIBLE );
-                 }else {
-                     textResultado.setVisibility( View.VISIBLE);
-                     recyclerRequisicoes.setVisibility( View.GONE );
-                 }
+                if (dataSnapshot.getChildrenCount() > 0) {
+                    textResultado.setVisibility(View.GONE);
+                    recyclerRequisicoes.setVisibility(View.VISIBLE);
+                } else {
+                    textResultado.setVisibility(View.VISIBLE);
+                    recyclerRequisicoes.setVisibility(View.GONE);
+                }
 
-                 listaRequisicoes.clear();
-                 for(DataSnapshot ds : dataSnapshot.getChildren()){
-                    Requisicao requisicao = ds.getValue( Requisicao.class );
-                    listaRequisicoes.add( requisicao );
+                listaRequisicoes.clear();
+                for (DataSnapshot ds : dataSnapshot.getChildren()) {
+                    Requisicao requisicao = ds.getValue(Requisicao.class);
+                    listaRequisicoes.add(requisicao);
                 }
 
                 adapter.notifyDataSetChanged();
