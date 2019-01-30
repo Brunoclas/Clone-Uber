@@ -55,7 +55,7 @@ public class RequisicoesAdapter extends RecyclerView.Adapter<RequisicoesAdapter.
                     Double.parseDouble(motorista.getLatitude()),
                     Double.parseDouble(motorista.getLongitude())
             );
-            float distancia = Local.calcularDistancia(localMotorista, localMotorista);
+            float distancia = Local.calcularDistancia(localPassageiro, localMotorista);
             String distanciaFormatada = Local.formatarDistancia(distancia);
 
             myViewHolder.distancia.setText(distanciaFormatada + " - aproximadamente");

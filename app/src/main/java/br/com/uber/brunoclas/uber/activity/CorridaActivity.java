@@ -108,10 +108,10 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
         requisicoes.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
                 //Recupera requisicao
                 requisicao = dataSnapshot.getValue(Requisicao.class);
-
-                if (requisicoes != null) {
+                if (requisicao != null) {
 
                     passageiro = requisicao.getPassageiro();
                     localPassageiro = new LatLng(
@@ -138,18 +138,31 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
         switch (status) {
             case Requisicao.STATUS_AGUARDANDO:
                 requisicaoAguardando();
-
                 break;
+
             case Requisicao.STATUS_A_CAMINHO:
                 requisicaoACaminho();
                 break;
+
             case Requisicao.STATUS_VIAGEM:
                 requisicaoViagem();
                 break;
+
             case Requisicao.STATUS_FINALIZADA:
                 requisicaoFinalizada();
                 break;
+
+            case Requisicao.STATUS_CANCELADA:
+                requisicaoCancelada();
+                break;
         }
+    }
+
+    private void requisicaoCancelada() {
+
+        alerta("Requisicao foi cancelada pelo passageiro!", 1);
+        startActivity(new Intent(CorridaActivity.this, RequisicoesActivity.class));
+
     }
 
     @SuppressLint("RestrictedApi")
@@ -436,6 +449,7 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
     }
 
     private void recuperarLocalizacaoUsuario() {
+
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
         locationListener = new LocationListener() {
@@ -445,24 +459,18 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
                 //Recuperar a latitude e longitude
                 double latitude = location.getLatitude();
                 double longitude = location.getLongitude();
+                localMotorista = new LatLng(latitude, longitude);
 
                 //Atualizar Geofire
                 UsuarioFirebase.atualizarDadosLocalizacao(latitude, longitude);
 
-                localMotorista = new LatLng(latitude, longitude);
+                //Atualizar localizacao motorista no Firebase
+                motorista.setLatitude(String.valueOf(latitude));
+                motorista.setLongitude(String.valueOf(longitude));
+                requisicao.setMotorista(motorista);
+                requisicao.atualzarLocalizacaoMotorista();
 
                 alteraInterfaceStatusRequisicao(statusRequisicao);
-
-              /*  mMap.clear();
-                mMap.addMarker(
-                        new MarkerOptions()
-                                .position(localMotorista)
-                                .title("Meu local")
-                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.carro))
-                );
-                mMap.moveCamera(
-                        CameraUpdateFactory.newLatLngZoom(localMotorista, 20)
-                ); */
 
             }
 
@@ -517,6 +525,15 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
             startActivity(i);
 
         }
+
+        //Verificar o status da requisicao para encerrar
+        if( statusRequisicao != null && !statusRequisicao.isEmpty() ){
+
+            requisicao.setStatus(Requisicao.STATUS_ENCERRADA);
+            requisicao.atualizarStatus();
+
+        }
+
         return false;
     }
 
