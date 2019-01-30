@@ -19,6 +19,9 @@ public class Requisicao {
     public static final String STATUS_A_CAMINHO = "acaminho";
     public static final String STATUS_VIAGEM = "viagem";
     public static final String STATUS_FINALIZADA = "finalizada";
+    public static final String STATUS_ENCERRADA = "encerrada";
+    public static final String STATUS_CANCELADA = "cancelada";
+
 
     public Requisicao() {
     }
@@ -59,6 +62,24 @@ public class Requisicao {
         objeto.put("status", getStatus() );
 
         requisicao.updateChildren(objeto);
+    }
+
+    public void atualzarLocalizacaoMotorista(){
+
+        DatabaseReference firebaseRef = ConfiguracaoFirebase.getFirebaseDatabase();
+        DatabaseReference requisicoes = firebaseRef
+                .child("requisicoes");
+
+        DatabaseReference requisicao = requisicoes
+                .child(getId())
+                .child("motorista");
+
+        Map objeto = new HashMap();
+        objeto.put("latitude", getMotorista().getLatitude() );
+        objeto.put("longitude", getMotorista().getLongitude() );
+
+        requisicao.updateChildren(objeto);
+
     }
 
     public String getId() {
