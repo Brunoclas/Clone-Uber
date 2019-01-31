@@ -138,22 +138,27 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
         switch (status) {
             case Requisicao.STATUS_AGUARDANDO:
                 requisicaoAguardando();
+                //alerta("STATUS_AGUARDANDO", 1);
                 break;
 
             case Requisicao.STATUS_A_CAMINHO:
                 requisicaoACaminho();
+                //alerta("STATUS_A_CAMINHO", 1);
                 break;
 
             case Requisicao.STATUS_VIAGEM:
                 requisicaoViagem();
+                //alerta("RSTATUS_VIAGEM", 1);
                 break;
 
             case Requisicao.STATUS_FINALIZADA:
                 requisicaoFinalizada();
+                //alerta("STATUS_FINALIZADA", 1);
                 break;
 
             case Requisicao.STATUS_CANCELADA:
                 requisicaoCancelada();
+                //alerta("STATUS_CANCELADA", 1);
                 break;
         }
     }
@@ -441,10 +446,6 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
 
         //Recuperar localizacao do usuario
         recuperarLocalizacaoUsuario();
-
-        mMap.moveCamera(
-                CameraUpdateFactory.newLatLngZoom(localMotorista, 20)
-        );
 
     }
 

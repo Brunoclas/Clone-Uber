@@ -65,9 +65,12 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
      * Lat/lon destino:-23.556407, -46.662365 (Av. Paulista, 2439)
      * Lat/lon passageiro: -23.562791, -46.654668
      * Lat/lon Motorista (a caminho):
+     *   longe: -23.571139, -46.660936
      *   inicial: -23.563196, -46.650607
      *   intermediaria: -23.564801, -46.652196
      *   final: -23.562801, -46.654660
+     * Encerramento intermediário: -23.557499, -46.661084
+     * Encerramento da corrida: -23.556439, -46.662313
      * */
 
     //Compoentes
@@ -103,9 +106,6 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_passageiro);
 
-        //Configuracoes iniciais
-        firebaseRef = ConfiguracaoFirebase.getFirebaseDatabase();
-
         inicializarCompoentes();
 
         //Adiciona listener para status da requisicao
@@ -117,7 +117,7 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
 
         Usuario usuarioLogado = UsuarioFirebase.getDadosUsuarioLogado();
         DatabaseReference requisicoes = firebaseRef.child("requisicoes");
-        final Query requisicaoPesquisa = requisicoes.orderByChild("passageiro/id")
+        Query requisicaoPesquisa = requisicoes.orderByChild("passageiro/id")
                 .equalTo(usuarioLogado.getId());
 
         requisicaoPesquisa.addValueEventListener(new ValueEventListener() {
@@ -229,7 +229,7 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
 
         //Calcular distancia
         float distancia = Local.calcularDistancia(localPassageiro, localDestino);
-        float valor = distancia * 4;
+        float valor = distancia * 8;
         DecimalFormat decimal  = new DecimalFormat("0.00");
         String resultado = decimal.format(valor);
 
@@ -394,7 +394,6 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
             //Cancelar a requisicao
             requisicao.setStatus(Requisicao.STATUS_CANCELADA);
             requisicao.atualizarStatus();
-            cancelarUber = false;
 
         } else {
 
@@ -511,7 +510,8 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
 
                 if (statusRequisicao != null && !statusRequisicao.isEmpty()) {
 
-                    if (statusRequisicao.equals(Requisicao.STATUS_VIAGEM) || statusRequisicao.equals(Requisicao.STATUS_FINALIZADA)) {
+                    if (statusRequisicao.equals(Requisicao.STATUS_VIAGEM)
+                            || statusRequisicao.equals(Requisicao.STATUS_FINALIZADA)) {
                         locationManager.removeUpdates(locationListener);
                     }else{
                         //Solicitar atualizacoes de loclizacao
@@ -548,7 +548,7 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             locationManager.requestLocationUpdates(
                     LocationManager.GPS_PROVIDER,
-                    5000,
+                    10000,
                     10,
                     locationListener
             );
