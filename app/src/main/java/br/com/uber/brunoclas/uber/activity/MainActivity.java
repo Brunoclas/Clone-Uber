@@ -13,7 +13,6 @@ import android.view.View;
 import com.google.firebase.auth.FirebaseAuth;
 
 import br.com.uber.brunoclas.uber.R;
-import br.com.uber.brunoclas.uber.config.ConfiguracaoFirebase;
 import br.com.uber.brunoclas.uber.helper.Permissoes;
 import br.com.uber.brunoclas.uber.helper.UsuarioFirebase;
 
@@ -21,7 +20,9 @@ public class MainActivity extends AppCompatActivity {
 
     private FirebaseAuth autenticacao;
     private String[] permissoes = new String []{
-            Manifest.permission.ACCESS_FINE_LOCATION
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.INTERNET,
+            Manifest.permission.CAMERA
     };
 
     @Override

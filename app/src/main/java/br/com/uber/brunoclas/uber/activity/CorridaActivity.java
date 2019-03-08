@@ -51,6 +51,9 @@ import br.com.uber.brunoclas.uber.helper.UsuarioFirebase;
 import br.com.uber.brunoclas.uber.model.Destino;
 import br.com.uber.brunoclas.uber.model.Requisicao;
 import br.com.uber.brunoclas.uber.model.Usuario;
+import br.com.uber.brunoclas.uber.zxing.BarcodeFormat;
+import br.com.uber.brunoclas.uber.zxing.client.android.Contents;
+import br.com.uber.brunoclas.uber.zxing.client.android.Intents;
 
 public class CorridaActivity extends AppCompatActivity implements OnMapReadyCallback {
 
@@ -195,6 +198,14 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
         float valor = distancia * 4;
         DecimalFormat decimal  = new DecimalFormat("0.00");
         String resultado = decimal.format(valor);
+
+        // Gera o QrCode e mostra na tela
+        Intent intent = new Intent(Intents.Encode.ACTION);
+        intent.addFlags(Intents.FLAG_NEW_DOC);
+        intent.putExtra(Intents.Encode.TYPE, Contents.Type.TEXT);
+        intent.putExtra(Intents.Encode.DATA, resultado);
+        intent.putExtra(Intents.Encode.FORMAT, BarcodeFormat.QR_CODE.toString());
+        startActivity(intent);
 
         buttonAceitarCorrida.setText("Corrida finalizada - R$ " + resultado);
 

@@ -12,13 +12,10 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -31,7 +28,6 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
@@ -58,6 +54,8 @@ import br.com.uber.brunoclas.uber.helper.UsuarioFirebase;
 import br.com.uber.brunoclas.uber.model.Destino;
 import br.com.uber.brunoclas.uber.model.Requisicao;
 import br.com.uber.brunoclas.uber.model.Usuario;
+import br.com.uber.brunoclas.uber.zxing.client.android.CaptureActivity;
+
 
 public class PassageiroActivity extends AppCompatActivity implements OnMapReadyCallback {
 
@@ -100,6 +98,7 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
 
     private Usuario motorista;
     private LatLng localMotorista;
+    private String dados, formato, tipo, dataLeitura;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,6 +109,7 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
 
         //Adiciona listener para status da requisicao
         verificaStatusRequisicao();
+
 
     }
 
@@ -139,7 +139,7 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
                     requisicao = lista.get(0);
 
                     if (requisicao != null) {
-                        if ( !requisicao.getStatus().equals(Requisicao.STATUS_ENCERRADA)) {
+                        if (!requisicao.getStatus().equals(Requisicao.STATUS_ENCERRADA)) {
 
                             passageiro = requisicao.getPassageiro();
                             localPassageiro = new LatLng(
@@ -199,7 +199,7 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
                     break;
 
             }
-        }else{
+        } else {
             //Adicionar marcador de passageiro
             adicionaMarcadorPassageiro(localPassageiro, "Seu local");
             centralizarMarcador(localPassageiro);
@@ -225,19 +225,24 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
                 Double.parseDouble(destino.getLongitude())
         );
         adicionaMarcadorDestino(localDestino, "Destino");
-        centralizarMarcador( localDestino );
+        centralizarMarcador(localDestino);
 
         //Calcular distancia
         float distancia = Local.calcularDistancia(localPassageiro, localDestino);
-        float valor = distancia * 8;
-        DecimalFormat decimal  = new DecimalFormat("0.00");
+        float valor = distancia * 4;
+        DecimalFormat decimal = new DecimalFormat("0.00");
         String resultado = decimal.format(valor);
 
-        buttonChamarUber.setText("Corrida finalizada - R$ " + resultado);
+//        Intent intent = getIntent();
+//        Bundle bundle = intent.getExtras();
+//        dados = bundle.getString("dados");
+//        formato = bundle.getString("formato");
+//        tipo = bundle.getString("tipo");
+//        dataLeitura = bundle.getString("dataLeitura");
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this)
                 .setTitle("Total da viagem")
-                .setMessage("Sua viagem ficou: R$ " + resultado )
+                .setMessage("Sua viagem ficou: R$ " + dados)
                 .setCancelable(false)
                 .setNegativeButton("Encerrar viagem", new DialogInterface.OnClickListener() {
                     @Override
@@ -253,6 +258,9 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
                 });
         AlertDialog dialog = builder.create();
         dialog.show();
+
+        buttonChamarUber.setText("Corrida finalizada - R$ " + resultado);
+        //startActivity(new Intent(PassageiroActivity.this, CaptureActivity.class));
 
     }
 
@@ -389,7 +397,7 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
         //false -> Uber nao pode ser cancelado ainda
         //true -> Ube rpode ser cancelado
 
-        if ( cancelarUber ) {  //Uber pode ser cancelado
+        if (cancelarUber) {  //Uber pode ser cancelado
 
             //Cancelar a requisicao
             requisicao.setStatus(Requisicao.STATUS_CANCELADA);
@@ -513,7 +521,7 @@ public class PassageiroActivity extends AppCompatActivity implements OnMapReadyC
                     if (statusRequisicao.equals(Requisicao.STATUS_VIAGEM)
                             || statusRequisicao.equals(Requisicao.STATUS_FINALIZADA)) {
                         locationManager.removeUpdates(locationListener);
-                    }else{
+                    } else {
                         //Solicitar atualizacoes de loclizacao
                         if (ActivityCompat.checkSelfPermission(PassageiroActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                             locationManager.requestLocationUpdates(
