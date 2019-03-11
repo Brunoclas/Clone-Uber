@@ -510,10 +510,14 @@ public class CorridaActivity extends AppCompatActivity implements OnMapReadyCall
         requisicao = new Requisicao();
         requisicao.setId(idRequisicao);
         requisicao.setMotorista(motorista);
-        requisicao.setStatus(Requisicao.STATUS_A_CAMINHO);
 
-        requisicao.atualzar();
-
+        if(statusRequisicao.equals("aguardando")) {
+            requisicao.setStatus(Requisicao.STATUS_A_CAMINHO);
+            requisicao.atualzar();
+        }else if(statusRequisicao.equals("encerrada")){
+            finish();
+            startActivity(new Intent(CorridaActivity.this, RequisicoesActivity.class));
+        }
     }
 
     @Override
